@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kasatria Assigment</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "@tweenjs/tween.js": "https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@23.1.1/dist/tween.esm.js"
+  }
+}
+</script>
+<style>
+  :root { --bg:#000; --teal:#7fffe6; --red:#EF3022; --orange:#FDCA35; --green:#3A9F48; }
+  * { box-sizing: border-box; }
+  html, body { height:100%; margin:0; background:var(--bg); color:#fff;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; overflow:hidden; }
+
+  /* ---------- Login ---------- */
+  #login { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#f3f4f6; z-index:10; }
+  .card { background:#fff; color:#222; width:min(440px,90vw); padding:56px 32px; border:1px solid #e5e7eb;
+    border-radius:8px; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+  .card h1 { font-size:22px; font-weight:400; margin:0 0 14px; }
+  .card p { font-size:11px; color:#555; margin:0 0 34px; }
+  #gbtn { display:inline-flex; align-items:center; gap:12px; background:#4285f4; color:#fff; border:0; cursor:pointer;
+    border-radius:4px; padding:6px 22px 6px 6px; font-size:13px; box-shadow:0 1px 3px rgba(0,0,0,.25); }
+  #gbtn:hover { background:#3b78dc; }
+  #gbtn .g { background:#fff; width:30px; height:30px; border-radius:3px; display:flex; align-items:center; justify-content:center; }
+  #err { color:#c0392b; font-size:12px; margin-top:18px; min-height:16px; white-space:pre-wrap; }
+
+  /* ---------- Scene ---------- */
+  #container { position:absolute; inset:0; }
+  #menu { position:absolute; bottom:22px; width:100%; text-align:center; z-index:5; display:none; }
+  #menu button, #signout { color:rgba(127,255,255,.75); background:transparent; border:1px solid rgba(127,255,255,.75);
+    padding:6px 12px; margin:0 2px; cursor:pointer; font-size:12px; letter-spacing:.04em; }
+  #menu button:hover, #signout:hover { background:rgba(0,255,255,.5); color:#fff; }
+  #menu button.active { background:rgba(0,255,255,.35); color:#fff; }
+  #legend { display:inline-flex; align-items:center; gap:8px; margin-left:26px; font-size:12px; vertical-align:middle;
+    border:1px solid rgba(255,255,255,.2); padding:5px 10px; }
+  #legend .bar { width:110px; height:6px; border-radius:3px;
+    background:linear-gradient(90deg,var(--red),var(--orange),var(--green)); }
+  #user { position:absolute; top:14px; right:16px; z-index:5; font-size:12px; color:rgba(127,255,255,.8); display:none; align-items:center; gap:10px; }
+  #status { position:absolute; top:50%; width:100%; text-align:center; color:rgba(127,255,255,.8); display:none; z-index:4; }
+
+  /* ---------- Tiles ---------- */
+  .tile { width:120px; height:160px; border:1px solid; border-radius:4px; text-align:center; cursor:default;
+    display:flex; flex-direction:column; align-items:center; padding:8px 6px; font-family: "Helvetica Neue", Arial, sans-serif; }
+  .tile.red    { border-color:rgba(239,48,34,.9);  background:rgba(239,48,34,.22);  box-shadow:0 0 12px rgba(239,48,34,.45); }
+  .tile.orange { border-color:rgba(253,202,53,.9); background:rgba(253,202,53,.20); box-shadow:0 0 12px rgba(253,202,53,.45); }
+  .tile.green  { border-color:rgba(58,159,72,.9);  background:rgba(58,159,72,.22);  box-shadow:0 0 12px rgba(58,159,72,.45); }
+  .tile:hover.red    { box-shadow:0 0 20px rgba(239,48,34,.95); }
+  .tile:hover.orange { box-shadow:0 0 20px rgba(253,202,53,.95); }
+  .tile:hover.green  { box-shadow:0 0 20px rgba(58,159,72,.95); }
+  .tile .top { display:flex; justify-content:space-between; width:100%; font-size:11px; color:rgba(255,255,255,.85); }
+  .tile img { width:84px; height:84px; object-fit:cover; margin:6px 0 6px; background:#222; border:1px solid rgba(255,255,255,.25); }
+  .tile .name { font-size:11px; font-weight:700; line-height:1.15; min-height:26px; display:flex; align-items:center; }
+  .tile .int { font-size:10px; color:rgba(255,255,255,.8); margin-top:2px; }
+  .tile .nw { font-size:10px; color:rgba(255,255,255,.95); margin-top:auto; }
+</style>
+</head>
+<body>
+
+<!-- Sign-in (Image A) -->
+<div id="login">
+  <div class="card">
+    <h1>Welcome Back</h1>
+    <p>Sign in with your Google account to view the data.</p>
+    <button id="gbtn" type="button">
+      <span class="g">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.5 7l7.3 5.7c4.3-4 6.9-9.9 6.9-17.2z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2 1.4-4.9 2.3-8.6 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+      </span>
+      Sign in with Google
+    </button>
+    <div id="err"></div>
+  </div>
+</div>
+
+<div id="container"></div>
+<div id="status">Loading data…</div>
+<div id="user"><span id="who"></span><button id="signout" type="button">SIGN OUT</button></div>
+<div id="menu">
+  <button id="table" class="active">TABLE</button>
+  <button id="sphere">SPHERE</button>
+  <button id="helix">HELIX</button>
+  <button id="grid">GRID</button>
+  <span id="legend">LOW <span class="bar"></span> HIGH</span>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import * as TWEEN from '@tweenjs/tween.js';
+import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+
+const CLIENT_ID = '314055875094-oire5rgfqm9b37rfmvvee7jt597fflo7.apps.googleusercontent.com'
+const SHEET_ID  = '1RFWQorvSobOqRIzfxHSBGwIaeI0ikXf0AWfKwIUmHN4';
+const RANGE     = 'A1:F201';
+ 
+const SCOPES = 'openid email profile https://www.googleapis.com/auth/spreadsheets.readonly';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let tokenClient, accessToken = null;
+let camera, scene, renderer, controls;
+const objects = [];
+const targets = { table: [], sphere: [], helix: [], grid: [] };
+
+/* ---------------------------  Auth  --------------------------- */
+function initAuth() {
+  if (!window.google?.accounts?.oauth2) { setTimeout(initAuth, 150); return; }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: onToken,
+    error_callback: e => showError('Sign-in failed: ' + (e.message || e.type))
+  });
+}
+initAuth();
+
+$('gbtn').addEventListener('click', () => {
+  $('err').textContent = '';
+  if (CLIENT_ID.startsWith('YOUR_')) return showError('Set CLIENT_ID in index.html first.');
+  if (!tokenClient) return showError('Google sign-in is still loading, try again.');
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
+});
+
+$('signout').addEventListener('click', () => {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
+  location.reload();
+});
+
+function showError(msg) { $('err').textContent = msg; $('status').style.display = 'none'; }
+
+async function onToken(resp) {
+  if (resp.error) return showError('Sign-in failed: ' + resp.error);
+  accessToken = resp.access_token;
+  $('login').style.display = 'none';
+  $('status').style.display = 'block';
+  try {
+    const me = await (await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
+      { headers: { Authorization: 'Bearer ' + accessToken } })).json();
+    $('who').textContent = me.name || me.email || '';
+    $('user').style.display = 'flex';
+
+    const people = await loadSheet();
+    $('status').style.display = 'none';
+    $('menu').style.display = 'block';
+    init(people);
+    animate();
+  } catch (e) {
+    $('login').style.display = 'flex';
+    showError(String(e.message || e));
+  }
+}
+
+/* ---------------------  Google Sheet → objects  --------------------- */
+async function loadSheet() {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(RANGE)}?valueRenderOption=FORMATTED_VALUE`;
+  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!r.ok) {
+    const t = await r.json().catch(() => ({}));
+    throw new Error(`Could not read the Sheet (${r.status}). ${t.error?.message || ''}`);
+  }
+  const rows = (await r.json()).values || [];
+  const head = rows[0].map(h => String(h).trim().toLowerCase());
+  const col = n => head.indexOf(n);
+  const people = rows.slice(1).filter(r => r[col('name')]).map(r => {
+    const nwRaw = String(r[col('net worth')] ?? '');
+    return {
+      name: r[col('name')], photo: r[col('photo')], age: r[col('age')],
+      country: r[col('country')], interest: r[col('interest')],
+      nwText: nwRaw.trim(), nw: parseFloat(nwRaw.replace(/[^0-9.\-]/g, '')) || 0
+    };
+  });
+  if (!people.length) throw new Error('The Sheet returned no rows. Check RANGE.');
+  return people;
+}
+
+/* ---------------------  Net worth colour rule  --------------------- */
+// Red  < $100K · Orange > $100K (up to $200K) · Green > $200K
+const band = nw => nw < 100000 ? 'red' : nw > 200000 ? 'green' : 'orange';
+
+/* ---------------------------  Scene  --------------------------- */
+function init(people) {
+  camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 1, 10000);
+  camera.position.z = 3400;
+  scene = new THREE.Scene();
+
+  const N = people.length;
+
+  people.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'tile ' + band(p.nw);
+    el.innerHTML =
+      `<div class="top"><span>${esc(p.country)}</span><span>${esc(p.age)}</span></div>` +
+      `<img src="${esc(p.photo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` +
+      `<div class="name">${esc(p.name)}</div>` +
+      `<div class="int">${esc(p.interest)}</div>` +
+      `<div class="nw">${esc(p.nwText)}</div>`;
+    const obj = new CSS3DObject(el);
+    obj.position.set(Math.random() * 4000 - 2000, Math.random() * 4000 - 2000, Math.random() * 4000 - 2000);
+    scene.add(obj);
+    objects.push(obj);
+  });
+
+  /* TABLE – 20 columns × 10 rows */
+  for (let i = 0; i < N; i++) {
+    const o = new THREE.Object3D();
+    o.position.set((i % 20) * 140 - 1330, -(Math.floor(i / 20) % 10) * 180 + 810, 0);
+    targets.table.push(o);
+  }
+
+  /* SPHERE */
+  const v = new THREE.Vector3();
+  for (let i = 0; i < N; i++) {
+    const phi = Math.acos(-1 + (2 * i) / N), theta = Math.sqrt(N * Math.PI) * phi;
+    const o = new THREE.Object3D();
+    o.position.setFromSphericalCoords(900, phi, theta);
+    v.copy(o.position).multiplyScalar(2);
+    o.lookAt(v);
+    targets.sphere.push(o);
+  }
+
+  /* DOUBLE HELIX – two strands, half a turn (π) apart */
+  for (let i = 0; i < N; i++) {
+    const strand = i % 2, k = Math.floor(i / 2);
+    const theta = k * 0.30 + strand * Math.PI;
+    const o = new THREE.Object3D();
+    o.position.setFromCylindricalCoords(900, theta, -(k * 14) + 700);
+    v.set(o.position.x * 2, o.position.y, o.position.z * 2);
+    o.lookAt(v);
+    targets.helix.push(o);
+  }
+
+  /* GRID – 5 (x) × 4 (y) × 10 (z) */
+  for (let i = 0; i < N; i++) {
+    const o = new THREE.Object3D();
+    o.position.set(
+      (i % 5) * 400 - 800,
+      -(Math.floor(i / 5) % 4) * 400 + 600,
+      Math.floor(i / 20) * 600 - 2700
+    );
+    targets.grid.push(o);
+  }
+
+  renderer = new CSS3DRenderer();
+  renderer.setSize(innerWidth, innerHeight);
+  $('container').appendChild(renderer.domElement);
+
+  controls = new TrackballControls(camera, renderer.domElement);
+  controls.minDistance = 500;
+  controls.maxDistance = 7000;
+  controls.addEventListener('change', render);
+
+  for (const name of ['table', 'sphere', 'helix', 'grid']) {
+    $(name).addEventListener('click', () => {
+      document.querySelectorAll('#menu button').forEach(b => b.classList.toggle('active', b.id === name));
+      transform(targets[name], 1800);
+    });
+  }
+
+  transform(targets.table, 2000);
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+    render();
+  });
+}
+
+function transform(list, duration) {
+  TWEEN.removeAll();
+  objects.forEach((obj, i) => {
+    const t = list[i];
+    new TWEEN.Tween(obj.position)
+      .to({ x: t.position.x, y: t.position.y, z: t.position.z }, Math.random() * duration + duration)
+      .easing(TWEEN.Easing.Exponential.InOut).start();
+    new TWEEN.Tween(obj.rotation)
+      .to({ x: t.rotation.x, y: t.rotation.y, z: t.rotation.z }, Math.random() * duration + duration)
+      .easing(TWEEN.Easing.Exponential.InOut).start();
+  });
+  new TWEEN.Tween({}).to({}, duration * 2).onUpdate(render).start();
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  TWEEN.update();
+  controls.update();
+}
+function render() { renderer.render(scene, camera); }
+</script>
+</body>
+</html>
